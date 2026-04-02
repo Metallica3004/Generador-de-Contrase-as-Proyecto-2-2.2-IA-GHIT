@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Password Generator PRO</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+<style>
+:root{
+  --card:rgba(20,30,60,0.8);
+  --primary:#6366f1;
+  --text:#e2e8f0;
+}
+
+*{box-sizing:border-box;font-family:'Inter',sans-serif;}
+
+body{
+  margin:0;
+  height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:url('https://images.unsplash.com/photo-1603791440384-56cd371ee9a7?q=80&w=1920&auto=format&fit=crop') no-repeat center/cover;
+}
+
+.overlay{
+  position:absolute;inset:0;
+  background:rgba(0,0,0,0.6);
+  backdrop-filter: blur(6px);
+}
+
+.container{
+  position:relative;
+  z-index:2;
+  width:95%;
+  max-width:520px;
+  background:var(--card);
+  padding:25px;
+  border-radius:18px;
+}
+
+.output{
+  display:flex;
+  background:#0f172a;
+  padding:10px;
+  border-radius:10px;
+  margin-bottom:10px;
+}
+
+.output input{
+  flex:1;
+  border:none;
+  background:transparent;
+  color:white;
+  outline:none;
+}
+
+button{
+  background:var(--primary);
+  border:none;
+  padding:10px;
+  border-radius:8px;
+  color:white;
+  cursor:pointer;
+}
+
+.controls{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin:10px 0;
+}
+
+.slider{width:100%;}
+
+.strength-box{
+  margin-top:10px;
+  padding:10px;
+  border-radius:10px;
+  text-align:center;
+  font-weight:600;
+}
+
+</style>
+</head>
+
+<body>
+<div class="overlay"></div>
+
+<div class="container">
+<h2><i class="fa-solid fa-lock"></i> Password PRO</h2>
+
+<div class="output">
+<input type="password" id="pass" readonly>
+<button id="toggleBtn"><i class="fa fa-eye"></i></button>
+<button id="copyBtn"><i class="fa fa-copy"></i></button>
+</div>
+
+<input type="range" min="12" max="64" value="16" id="len" class="slider">
+<p>Longitud: <span id="lenVal">16</span></p>
+
+<div class="controls">
+<label><input type="checkbox" id="u" checked> Mayúsculas</label>
+<label><input type="checkbox" id="l" checked> Minúsculas</label>
+<label><input type="checkbox" id="n" checked> Números</label>
+<label><input type="checkbox" id="s" checked> Símbolos</label>
+<label><input type="checkbox" id="w"> Passphrase</label>
+</div>
+
+<button id="genBtn">Generar</button>
+
+<div class="strength-box" id="strengthBox">Nivel de seguridad: -</div>
+
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+const passEl = document.getElementById("pass");
+const lenEl = document.getElementById("len");
+const lenVal = document.getElementById("lenVal");
+const strengthBox = document.getElementById("strengthBox");
+
+const u = document.getElementById("u");
+const l = document.getElementById("l");
+const n = document.getElementById("n");
+const s = document.getElementById("s");
+const w = document.getElementById("w");
+
+const genBtn = document.getElementById("genBtn");
+const copyBtn = document.getElementById("copyBtn");
+const toggleBtn = document.getElementById("toggleBtn");
+
+const upper="ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+const lower="abcdefghijklmnopqrstuvwxyz";
+const numbers="0123456789";
+const symbols="!@#$%^&*()_+{}[]<>?";
+
+const words=["sol","luna","rio","cielo","fuego","tierra","viento","mar","roca","nube",
+"lobo","tigre","leon","aguila","bosque","flor","arena","trueno","eco","sombra"];
+
+function rand(max){
+  let a=new Uint32Array(1);
+  crypto.getRandomValues(a);
+  return a[0]%max;
+}
+
+function entropy(p){
+  let pool=0;
+  if(/[A-Z]/.test(p)) pool+=26;
+  if(/[a-z]/.test(p)) pool+=26;
+  if(/[0-9]/.test(p)) pool+=10;
+  if(/[^A-Za-z0-9]/.test(p)) pool+=32;
+  return Math.round(p.length*Math.log2(pool||1));
+}
+
+function evaluate(p){
+  let e = entropy(p);
+  let level = "";
+  let color = "";
+
+  if(e < 40){
+    level = "1 - Bajo";
+    color = "#ef4444";
+  } else if(e < 60){
+    level = "2 - Medio";
+    color = "#f59e0b";
+  } else if(e < 80){
+    level = "3 - Alto";
+    color = "#22c55e";
+  } else {
+    level = "4 - Reforzado";
+    color = "#16a34a";
+  }
+
+  strengthBox.innerText = "Nivel de seguridad: " + level;
+  strengthBox.style.background = color;
+}
+
+function generate(){
+  let len = +lenEl.value;
+  let chars="";
+
+  if(u.checked) chars+=upper;
+  if(l.checked) chars+=lower;
+  if(n.checked) chars+=numbers;
+  if(s.checked) chars+=symbols;
+
+  let pass="";
+
+  if(w.checked){
+    let parts=[];
+    while(parts.join("").length<len){
+      parts.push(words[rand(words.length)]);
+    }
+    pass=parts.join("-");
+  } else {
+    if(!chars){
+      alert("Selecciona al menos una opción");
+      return;
+    }
+    for(let i=0;i<len;i++){
+      pass+=chars[rand(chars.length)];
+    }
+  }
+
+  passEl.value = pass;
+  evaluate(pass);
+}
+
+genBtn.addEventListener("click", generate);
+
+copyBtn.addEventListener("click", () => {
+  navigator.clipboard.writeText(passEl.value);
+});
+
+toggleBtn.addEventListener("click", () => {
+  passEl.type = passEl.type === "password" ? "text" : "password";
+});
+
+lenEl.addEventListener("input", () => {
+  lenVal.innerText = lenEl.value;
+});
+
+generate();
+
+});
+</script>
+</body>
+</html>
